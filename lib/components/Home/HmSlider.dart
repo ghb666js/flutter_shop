@@ -75,7 +75,10 @@ class _HmSliderState extends State<HmSlider> {
           children: List.generate(widget.bannerList.length, (int index) {
             return GestureDetector(
               onTap: () {
-                _controller.jumpToPage(index);
+                _controller.animateToPage(
+                  index,
+                  duration: Duration(milliseconds: 500),
+                );
               },
               // 动画容器组件
               child: AnimatedContainer(
