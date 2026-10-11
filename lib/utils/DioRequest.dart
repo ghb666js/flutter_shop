@@ -41,6 +41,13 @@ class DioRequest {
     return getResult(_dio.get(url, queryParameters: params));
   }
 
+  /// 发送GET请求（原始返回，不剥离业务包装 code/result）
+  /// 用于调用返回纯数组或非标准结构的外部接口
+  Future<dynamic> getRaw(String url, {Map<String, dynamic>? params}) async {
+    final res = await _dio.get(url, queryParameters: params);
+    return res.data;
+  }
+
   /// 进一步结构返回结果
   Future<dynamic> getResult(Future<Response<dynamic>> task) async {
     try {
