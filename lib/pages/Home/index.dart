@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:hm_shop/api/category.dart';
 import 'package:hm_shop/api/home.dart';
 import 'package:hm_shop/api/hot.dart';
@@ -10,6 +11,7 @@ import 'package:hm_shop/components/Home/HmHot.dart';
 import 'package:hm_shop/components/Home/HmMoreList.dart';
 import 'package:hm_shop/components/Home/HmSlider.dart';
 import 'package:hm_shop/components/Home/HmSuggestion.dart';
+import 'package:hm_shop/utils/ToastUtils.dart';
 import 'package:hm_shop/viewmodels/index.dart';
 
 class HomePage extends StatefulWidget {
@@ -66,45 +68,39 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    getBannerList();
-    getCategoryListData();
-    getSuggestionInfo();
-    getHotInfo();
-    getInVogueInfo();
-    getRecommendInfo();
     _registerEvent();
+    // 微任务会在build完成后执行
+    Future.microtask(() {
+      _key.currentState?.show();
+    });
+    _paidingTop = 100;
   }
 
-  getBannerList() async {
+  Future<void> getBannerList() async {
     _bannerList = await getBannerItem();
     // print(_bannerList);
-    setState(() {});
   }
 
-  getCategoryListData() async {
+  Future<void> getCategoryListData() async {
     _categoryList = await getCategoryList();
-    setState(() {});
   }
 
-  getSuggestionInfo() async {
+  Future<void> getSuggestionInfo() async {
     _suggestionData = await getSuggestionData();
-    setState(() {});
   }
 
-  getHotInfo() async {
+  Future<void> getHotInfo() async {
     _hotData = await getHotData();
-    setState(() {});
   }
 
-  getInVogueInfo() async {
+  Future<void> getInVogueInfo() async {
     _inVogueData = await getInVogueData();
-    setState(() {});
   }
 
   int page = 1;
   bool _isLoading = false;
   bool _hasMore = true;
-  void getRecommendInfo() async {
+  Future<void> getRecommendInfo() async {
     if (_isLoading || !_hasMore) return;
     // 展位状态，正在加载
     _isLoading = true;
@@ -113,12 +109,11 @@ class _HomePageState extends State<HomePage> {
     // 加载完成，关闭状态，放行
     _isLoading = false;
     page++;
-    setState(() {});
     // 没有下一页不再加载
     if (_recommendList.length < _recommendPage) return;
   }
 
-  void _registerEvent() {
+  Future<void> _registerEvent() async {
     _scrollController.addListener(() {
       if (_scrollController.position.pixels ==
           _scrollController.position.maxScrollExtent) {
@@ -128,12 +123,37 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _onRefresh() async {
+    int page = 1;
+    bool _isLoading = false;
+    bool _hasMore = true;
+    await getBannerList();
+    await getCategoryListData();
+    await getSuggestionInfo();
+    await getHotInfo();
+    await getInVogueInfo();
+    await getRecommendInfo();
+    ToastUtils.showToast(context, '哈哈哈哈');
+    _paidingTop = 0;
+    setState(() {});
+  }
+
+  double _paidingTop = 0;
+  GlobalKey<RefreshIndicatorState> _key = GlobalKey<RefreshIndicatorState>();
   ScrollController _scrollController = ScrollController();
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: _getSlivers(),
-      controller: _scrollController,
+    return AnimatedContainer(
+      padding: EdgeInsets.only(top: _paidingTop),
+      duration: Duration(milliseconds: 300),
+      child: RefreshIndicator(
+        key: _key,
+        onRefresh: _onRefresh,
+        child: CustomScrollView(
+          slivers: _getSlivers(),
+          controller: _scrollController,
+        ),
+      ),
     );
   }
 }
