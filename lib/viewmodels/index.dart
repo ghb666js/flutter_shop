@@ -1,3 +1,6 @@
+import 'package:hm_shop/constants/index.dart';
+import 'package:hm_shop/utils/DioRequest.dart';
+
 class BannerItem {
   String id;
   String imageUrl;
@@ -166,6 +169,62 @@ class SuggestionData {
               ?.map((e) => SubTypeItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+    );
+  }
+}
+
+class GuessLikeData {
+  int counts;
+  int pageSize;
+  int pages;
+  int page;
+  List<ItemsData> itemsData;
+  GuessLikeData({
+    required this.counts,
+    required this.pageSize,
+    required this.pages,
+    required this.page,
+    required this.itemsData,
+  });
+
+  factory GuessLikeData.fromJson(Map<String, dynamic> json) {
+    final items = json['items'] as List? ?? [];
+    return GuessLikeData(
+      counts: json['counts'] as int? ?? 0,
+      pageSize: json['pageSize'] as int? ?? 0,
+      pages: json['pages'] as int? ?? 0,
+      page: json['page'] as int? ?? 0,
+      itemsData: items
+          .map((e) => ItemsData.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class ItemsData {
+  String id;
+  String name;
+  String desc;
+  String price;
+  String picture;
+  String orderNum;
+  ItemsData({
+    required this.id,
+    required this.name,
+    required this.desc,
+    required this.price,
+    required this.picture,
+    required this.orderNum,
+  });
+
+  factory ItemsData.fromJson(Map<String, dynamic> json) {
+    return ItemsData(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      desc: json['desc']?.toString() ?? '',
+      price: json['price']?.toString() ?? '0',
+      picture: json['picture']?.toString() ?? '',
+      orderNum: json['orderNum']?.toString() ?? '0',
     );
   }
 }
