@@ -28,6 +28,12 @@ class _HomePageState extends State<HomePage> {
   SuggestionData? _hotData;
   SuggestionData? _inVogueData;
   List<RecommendItem> _recommendList = [];
+
+  // 推荐分页状态
+  int page = 1;
+  bool _isLoading = false;
+  bool _hasMore = true;
+
   List<Widget> _getSlivers() {
     return [
       SliverToBoxAdapter(child: HmSlider(bannerList: _bannerList)),
@@ -68,8 +74,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _registerEvent();
-    // 微任务会在build完成后执行
+    // 微任务会在build完成后执行：进入页面自动触发一次下拉刷新
     Future.microtask(() {
       _key.currentState?.show();
     });
@@ -78,7 +83,6 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> getBannerList() async {
     _bannerList = await getBannerItem();
-    // print(_bannerList);
   }
 
   Future<void> getCategoryListData() async {
@@ -97,50 +101,47 @@ class _HomePageState extends State<HomePage> {
     _inVogueData = await getInVogueData();
   }
 
-  int page = 1;
-  bool _isLoading = false;
-  bool _hasMore = true;
+  /// 加载推荐：分页，每次 10 条，追加到列表（不替换）
   Future<void> getRecommendInfo() async {
     if (_isLoading || !_hasMore) return;
-    // 展位状态，正在加载
-    _isLoading = true;
-    int _recommendPage = page * 10;
-    _recommendList = await getRecommendData({'limit': _recommendPage});
-    // 加载完成，关闭状态，放行
-    _isLoading = false;
-    page++;
-    // 没有下一页不再加载
-    if (_recommendList.length < _recommendPage) return;
+    setState(() => _isLoading = true);
+    try {
+      final items = await getRecommendData({
+        'skip': (page - 1) * 10,
+        'limit': 10,
+      });
+      _recommendList.addAll(items);
+      // 不足一页，说明没有下一页
+      if (items.length < 10) _hasMore = false;
+      page++;
+      setState(() {});
+    } catch (_) {
+      // 失败保留已有数据，下次滚动/刷新重试
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  Future<void> _registerEvent() async {
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels ==
-          _scrollController.position.maxScrollExtent) {
-        getRecommendInfo();
-        // print('滚动到底部了');
-      }
-    });
-  }
-
+  /// 下拉刷新：重置回第 1 页后重新拉取全部
   Future<void> _onRefresh() async {
-    int page = 1;
-    bool _isLoading = false;
-    bool _hasMore = true;
+    page = 1;
+    _isLoading = false;
+    _hasMore = true;
+    _recommendList.clear();
     await getBannerList();
     await getCategoryListData();
     await getSuggestionInfo();
     await getHotInfo();
     await getInVogueInfo();
     await getRecommendInfo();
-    ToastUtils.showToast(context, '哈哈哈哈');
-    _paidingTop = 0;
     setState(() {});
+    ToastUtils.showToast(context, '刷新成功');
+    _paidingTop = 0;
   }
 
   double _paidingTop = 0;
   GlobalKey<RefreshIndicatorState> _key = GlobalKey<RefreshIndicatorState>();
-  ScrollController _scrollController = ScrollController();
+
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
@@ -149,9 +150,19 @@ class _HomePageState extends State<HomePage> {
       child: RefreshIndicator(
         key: _key,
         onRefresh: _onRefresh,
-        child: CustomScrollView(
-          slivers: _getSlivers(),
-          controller: _scrollController,
+        // 用 NotificationListener 替代 ScrollController 监听：
+        // 只响应首页自身滚动冒泡上来的事件，杜绝 IndexedStack 中 Mine 页滚动时误触 Home
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollEndNotification &&
+                notification.metrics.maxScrollExtent > 0 &&
+                notification.metrics.pixels >=
+                    notification.metrics.maxScrollExtent - 200) {
+              getRecommendInfo();
+            }
+            return false;
+          },
+          child: CustomScrollView(slivers: _getSlivers()),
         ),
       ),
     );

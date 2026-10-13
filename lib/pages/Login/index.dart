@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:hm_shop/api/user.dart';
 import 'package:hm_shop/utils/ToastUtils.dart';
 
 class LoginPage extends StatefulWidget {
@@ -38,14 +40,32 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  _login() async {
+    try {
+      final res = await loginApi({
+        'account': _accountCtrl.text,
+        'password': _pwdCtrl.text,
+      });
+      ToastUtils.showToast(context, '登陆成功');
+      print(res);
+      Navigator.pop(context);
+    } catch (e) {
+      ToastUtils.showToast(
+        context,
+        (e as DioException).message ?? '登陆失败',
+        showWith: 240,
+      );
+    }
+  }
+
   void _handleLogin() {
     // 执行输入框中的所有validator验证
     _key.currentState?.validate();
-    if (!_agreed) {
+    if (_agreed) {
+      _login();
+    } else {
       ToastUtils.showToast(context, '请先同意隐私条款和用户协议', showWith: 240);
-      return;
     }
-    Navigator.pop(context);
   }
 
   final GlobalKey<FormState> _key = GlobalKey<FormState>();

@@ -9,7 +9,9 @@ class ToastUtils {
   }) {
     if (ToastUtils.isShowing) return;
     ToastUtils.isShowing = true;
-
+    Future.delayed(Duration(seconds: 3), () {
+      ToastUtils.isShowing = false;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         duration: Duration(seconds: 3),
@@ -19,8 +21,5 @@ class ToastUtils {
         content: Text(message ?? '加载成功', textAlign: TextAlign.center),
       ),
     );
-    Future.delayed(Duration(seconds: 3), () {
-      ToastUtils.isShowing = false;
-    });
   }
 }

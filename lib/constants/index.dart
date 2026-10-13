@@ -12,4 +12,6 @@ class HttpConstants {
   static const String ONESTOP_LIST = '/hot/oneStop';
   static const String RECOMMEND_LIST = 'https://dummyjson.com/products';
   static const String GUESSLIKE_LIST = '/home/goods/guessLike';
+
+  static const String LOGIN = '/login';
 }
