@@ -1,7 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/state_manager.dart';
 import 'package:hm_shop/api/user.dart';
+import 'package:hm_shop/stores/TokenManager.dart';
+import 'package:hm_shop/stores/UserController.dart';
 import 'package:hm_shop/utils/ToastUtils.dart';
 
 class LoginPage extends StatefulWidget {
@@ -14,6 +18,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _accountCtrl = TextEditingController();
   final TextEditingController _pwdCtrl = TextEditingController();
+  final UserController _userController = Get.find();
   bool _obscure = true;
   bool _agreed = false;
 
@@ -46,8 +51,9 @@ class _LoginPageState extends State<LoginPage> {
         'account': _accountCtrl.text,
         'password': _pwdCtrl.text,
       });
+      _userController.updataUserInfo(res);
+      tokenManager.setToken(res.token);
       ToastUtils.showToast(context, '登陆成功');
-      print(res);
       Navigator.pop(context);
     } catch (e) {
       ToastUtils.showToast(

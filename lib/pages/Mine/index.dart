@@ -1,7 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/state_manager.dart';
 import 'package:hm_shop/api/guessLike.dart';
 import 'package:hm_shop/components/Mine/HmGuess.dart';
+import 'package:hm_shop/stores/UserController.dart';
 import 'package:hm_shop/viewmodels/index.dart';
 
 class MinePage extends StatefulWidget {
@@ -18,7 +22,7 @@ class _MinePageState extends State<MinePage> {
   static const Color _pageBg = Color(0xFFF6F6F6); // 页面背景
   static const Color _textMain = Color(0xFF333333);
   static const Color _textSub = Color(0xFF666666);
-
+  final UserController _userController = Get.find();
   // 猜你喜欢状态
   final ScrollController _scrollController = ScrollController();
   final List<ItemsData> _guessList = [];
@@ -198,39 +202,52 @@ class _MinePageState extends State<MinePage> {
 
   /// 用户信息（未登录态）
   Widget _buildProfileHeader() {
-    return InkWell(
-      onTap: () => Navigator.pushNamed(context, '/login'),
-      child: Container(
-        padding: EdgeInsets.fromLTRB(20, 24, 20, 28),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFE4E1), Colors.white],
+    return Obx(() {
+      return InkWell(
+        onTap: () {
+          if (_userController.user.value.id.isEmpty) {
+            Navigator.pushNamed(context, '/login');
+          }
+        },
+        child: Container(
+          padding: EdgeInsets.fromLTRB(20, 24, 20, 28),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFFFE4E1), Colors.white],
+            ),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: _primary.withOpacity(.18),
+                backgroundImage: _userController.user.value.id.isNotEmpty
+                    ? NetworkImage(_userController.user.value.avatar)
+                    : null,
+                child: _userController.user.value.id.isNotEmpty
+                    ? null
+                    : Icon(Icons.person, size: 36, color: _primary),
+              ),
+              SizedBox(width: 14),
+              Text(
+                _userController.user.value.id.isNotEmpty
+                    ? _userController.user.value.account
+                    : '立即登录',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: _textMain,
+                ),
+              ),
+              Spacer(),
+              Icon(Icons.chevron_right, color: Color(0xFF999999)),
+            ],
           ),
         ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: _primary.withOpacity(.18),
-              child: Icon(Icons.person, size: 36, color: _primary),
-            ),
-            SizedBox(width: 14),
-            Text(
-              '立即登录',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: _textMain,
-              ),
-            ),
-            Spacer(),
-            Icon(Icons.chevron_right, color: Color(0xFF999999)),
-          ],
-        ),
-      ),
-    );
+      );
+    });
   }
 
   /// 会员开通 banner

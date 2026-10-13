@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/instance_manager.dart';
+import 'package:hm_shop/api/user.dart';
 import 'package:hm_shop/pages/Cart/index.dart';
 import 'package:hm_shop/pages/Category/index.dart';
 import 'package:hm_shop/pages/Home/index.dart';
 import 'package:hm_shop/pages/Mine/index.dart';
+import 'package:hm_shop/stores/TokenManager.dart';
+import 'package:hm_shop/stores/UserController.dart';
 
 class MainPage extends StatefulWidget {
   MainPage({Key? key}) : super(key: key);
@@ -53,6 +58,23 @@ class _MainPageState extends State<MainPage> {
 
   List<Widget> _getChildren() {
     return [HomePage(), CategoryPage(), CartPage(), MinePage()];
+  }
+
+  // put只能由一次，find可以多次获取
+  final UserController _userController = Get.put(UserController());
+
+  /// 初始化用户信息
+  void _userInit() async {
+    await tokenManager.init();
+    if (tokenManager.getToken().isNotEmpty) {
+      _userController.updataUserInfo(await getUserProfile());
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _userInit();
   }
 
   Widget build(BuildContext context) {
