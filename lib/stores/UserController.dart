@@ -7,7 +7,6 @@ class UserController extends GetxController {
 
   updataUserInfo(UserInfo newUser) {
     // 通过user.value获取值
-
     user.value = newUser;
   }
 }

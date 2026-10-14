@@ -5,8 +5,10 @@ import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/state_manager.dart';
 import 'package:hm_shop/api/guessLike.dart';
 import 'package:hm_shop/components/Mine/HmGuess.dart';
+import 'package:hm_shop/stores/TokenManager.dart';
 import 'package:hm_shop/stores/UserController.dart';
 import 'package:hm_shop/viewmodels/index.dart';
+import 'package:hm_shop/viewmodels/users.dart';
 
 class MinePage extends StatefulWidget {
   MinePage({Key? key}) : super(key: key);
@@ -200,6 +202,46 @@ class _MinePageState extends State<MinePage> {
     );
   }
 
+  Widget _loginOut() {
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('提示'),
+              content: Text('确定退出登录吗？', textAlign: TextAlign.center),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('取消'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    tokenManager.removeToken();
+                    _userController.updataUserInfo(UserInfo.fromJSON({}));
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/login');
+                  },
+                  child: Text('确定'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+      child: Text(
+        '退出登录',
+        style: TextStyle(
+          fontSize: 16,
+          color: const Color.fromARGB(255, 95, 95, 95),
+        ),
+      ),
+    );
+  }
+
   /// 用户信息（未登录态）
   Widget _buildProfileHeader() {
     return Obx(() {
@@ -242,7 +284,9 @@ class _MinePageState extends State<MinePage> {
                 ),
               ),
               Spacer(),
-              Icon(Icons.chevron_right, color: Color(0xFF999999)),
+              _userController.user.value.id.isNotEmpty
+                  ? _loginOut()
+                  : Icon(Icons.chevron_right, color: Color(0xFF999999)),
             ],
           ),
         ),
