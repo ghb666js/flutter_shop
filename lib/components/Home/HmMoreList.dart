@@ -23,11 +23,11 @@ class HmMoreList extends StatelessWidget {
       ),
       itemCount: recommendList.length,
       itemBuilder: (BuildContext context, int index) =>
-          _buildGoodsCard(recommendList[index]),
+          _buildGoodsCard(context, recommendList[index]),
     );
   }
 
-  Widget _buildGoodsCard(RecommendItem item) {
+  Widget _buildGoodsCard(BuildContext context, RecommendItem item) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -37,44 +37,57 @@ class HmMoreList extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Image.network(
-              item.picture,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey.shade100,
-                child: Icon(Icons.image_not_supported, color: Colors.grey),
+      child: InkWell(
+        onTap: () {
+          final product = ItemsData(
+            id: item.id,
+            name: item.name,
+            desc: '',
+            price: item.price,
+            picture: item.picture,
+            orderNum: '',
+          );
+          Navigator.pushNamed(context, '/product', arguments: product);
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Image.network(
+                item.picture,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.grey.shade100,
+                  child: Icon(Icons.image_not_supported, color: Colors.grey),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '¥${item.price}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.deepOrange,
-                    fontWeight: FontWeight.bold,
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12),
                   ),
-                ),
-              ],
+                  SizedBox(height: 4),
+                  Text(
+                    '¥${item.price}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.deepOrange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -34,18 +34,26 @@ class HmHot extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                data?.title ?? '',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: _titleColor,
+              Flexible(
+                child: Text(
+                  data?.title ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: _titleColor,
+                  ),
                 ),
               ),
               SizedBox(width: 8),
-              Text(
-                subTitle,
-                style: TextStyle(fontSize: 12, color: _priceColor),
+              Flexible(
+                child: Text(
+                  subTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: _priceColor),
+                ),
               ),
             ],
           ),
@@ -57,7 +65,7 @@ class HmHot extends StatelessWidget {
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
                     child: items.length > index
-                        ? _buildGoods(items[index])
+                        ? _buildGoods(context, items[index])
                         : SizedBox.shrink(),
                   ),
                 );
@@ -69,34 +77,50 @@ class HmHot extends StatelessWidget {
     );
   }
 
-  Widget _buildGoods(GoodsItem item) {
-    return Column(
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              item.picture,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              // 图片加载失败时，404图片
-              errorBuilder: (_, __, ___) => Container(
-                color: Colors.white,
-                child: Icon(Icons.image_not_supported, color: Colors.grey),
+  Widget _buildGoods(BuildContext context, GoodsItem item) {
+    return InkWell(
+      onTap: () {
+        final product = ItemsData(
+          id: item.id,
+          name: item.name,
+          desc: item.desc ?? '',
+          price: item.price,
+          picture: item.picture,
+          orderNum: item.orderNum.toString(),
+        );
+        Navigator.pushNamed(context, '/product', arguments: product);
+      },
+      child: Column(
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                item.picture,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                // 图片加载失败时，404图片
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.white,
+                  child: Icon(Icons.image_not_supported, color: Colors.grey),
+                ),
               ),
             ),
           ),
-        ),
-        SizedBox(height: 8),
-        Text(
-          '¥${item.price}',
-          style: TextStyle(
-            fontSize: 15,
-            color: _priceColor,
-            fontWeight: FontWeight.w500,
+          SizedBox(height: 8),
+          Text(
+            '¥${item.price}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              color: _priceColor,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

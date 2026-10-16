@@ -44,7 +44,7 @@ class _HmSuggestionState extends State<HmSuggestion> {
               childAspectRatio: 0.65,
             ),
             itemBuilder: (context, index) {
-              return _buildGoodsCard(goods[index]);
+              return _buildGoodsCard(context, goods[index]);
             },
           ),
         ],
@@ -102,7 +102,7 @@ class _HmSuggestionState extends State<HmSuggestion> {
     );
   }
 
-  Widget _buildGoodsCard(GoodsItem item) {
+  Widget _buildGoodsCard(BuildContext context, GoodsItem item) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -112,44 +112,59 @@ class _HmSuggestionState extends State<HmSuggestion> {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Image.network(
-              item.picture,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey.shade100,
-                child: Icon(Icons.image_not_supported, color: Colors.grey),
+      child: InkWell(
+        onTap: () {
+          final product = ItemsData(
+            id: item.id,
+            name: item.name,
+            desc: item.desc ?? '',
+            price: item.price,
+            picture: item.picture,
+            orderNum: item.orderNum.toString(),
+          );
+          Navigator.pushNamed(context, '/product', arguments: product);
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Image.network(
+                item.picture,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.grey.shade100,
+                  child: Icon(Icons.image_not_supported, color: Colors.grey),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '¥${item.price}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.deepOrange,
-                    fontWeight: FontWeight.bold,
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12),
                   ),
-                ),
-              ],
+                  SizedBox(height: 4),
+                  Text(
+                    '¥${item.price}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.deepOrange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

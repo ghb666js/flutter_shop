@@ -45,18 +45,29 @@ class _HmSliderState extends State<HmSlider> {
       top: 10,
       left: 0,
       right: 0,
-      child: Container(
-        alignment: Alignment.centerLeft,
-        margin: EdgeInsets.symmetric(horizontal: 10),
-        padding: EdgeInsets.all(20),
-        height: 60,
-        decoration: BoxDecoration(
-          color: const Color.fromRGBO(0, 0, 0, 0.5),
-          borderRadius: BorderRadius.all(Radius.circular(40)),
-        ),
-        child: Text(
-          '搜索...',
-          style: TextStyle(color: const Color.fromARGB(200, 255, 255, 255)),
+      child: GestureDetector(
+        onTap: () => Navigator.pushNamed(context, '/search'),
+        child: Container(
+          alignment: Alignment.centerLeft,
+          margin: EdgeInsets.symmetric(horizontal: 10),
+          padding: EdgeInsets.all(20),
+          height: 60,
+          decoration: BoxDecoration(
+            color: const Color.fromRGBO(0, 0, 0, 0.5),
+            borderRadius: BorderRadius.all(Radius.circular(40)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.search, color: Colors.white70, size: 20),
+              SizedBox(width: 8),
+              Text(
+                '搜索...',
+                style: TextStyle(
+                  color: const Color.fromARGB(200, 255, 255, 255),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

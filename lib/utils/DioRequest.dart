@@ -63,6 +63,13 @@ class DioRequest {
     return res.data;
   }
 
+  /// 发送POST请求（原始返回，不剥离业务包装）
+  /// 用于新后端认证接口（login/regist），返回体形如 {code,msg,data}
+  Future<dynamic> postRaw(String url, {Map<String, dynamic>? data}) async {
+    final res = await _dio.post(url, data: data);
+    return res.data;
+  }
+
   /// 进一步结构返回结果
   Future<dynamic> getResult(Future<Response<dynamic>> task) async {
     try {

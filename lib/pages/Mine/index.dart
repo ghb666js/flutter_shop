@@ -1,14 +1,20 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/state_manager.dart';
 import 'package:hm_shop/api/guessLike.dart';
+import 'package:hm_shop/api/user.dart';
 import 'package:hm_shop/components/Mine/HmGuess.dart';
+import 'package:hm_shop/stores/MemberController.dart';
 import 'package:hm_shop/stores/TokenManager.dart';
 import 'package:hm_shop/stores/UserController.dart';
+import 'package:hm_shop/utils/ToastUtils.dart';
 import 'package:hm_shop/viewmodels/index.dart';
 import 'package:hm_shop/viewmodels/users.dart';
+import 'package:image_picker/image_picker.dart';
 
 class MinePage extends StatefulWidget {
   MinePage({Key? key}) : super(key: key);
@@ -25,6 +31,7 @@ class _MinePageState extends State<MinePage> {
   static const Color _textMain = Color(0xFF333333);
   static const Color _textSub = Color(0xFF666666);
   final UserController _userController = Get.find();
+  final MemberController _memberController = Get.find();
   // 猜你喜欢状态
   final ScrollController _scrollController = ScrollController();
   final List<ItemsData> _guessList = [];
@@ -78,6 +85,109 @@ class _MinePageState extends State<MinePage> {
       _guessList.clear();
     });
     await _loadGuess();
+  }
+
+  /// 头像图片提供者：http 链接 → NetworkImage；本地路径 → FileImage；空 → null
+  ImageProvider? _avatarProvider(UserInfo user) {
+    final a = user.avatar;
+    if (a.isEmpty) return null;
+    if (a.startsWith('http')) return NetworkImage(a);
+    return FileImage(File(a));
+  }
+
+  /// 头像选择底部弹层（相册 / 拍照）
+  void _showAvatarSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.photo_outlined, color: _primary),
+              title: Text('从相册选择'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAvatar(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.camera_alt_outlined, color: _primary),
+              title: Text('拍照'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAvatar(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.close, color: Colors.grey),
+              title: Text('取消'),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 调用 image_picker 选图并本地持久化头像
+  Future<void> _pickAvatar(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final xfile = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+      if (xfile == null) return;
+      await _userController.updateAvatar(xfile.path);
+      if (mounted) ToastUtils.showToast(context, '头像已更新');
+    } catch (_) {
+      if (mounted) ToastUtils.showToast(context, '设置头像失败', showWith: 240);
+    }
+  }
+
+  /// 修改昵称弹窗
+  void _showNicknameDialog() {
+    final ctrl = TextEditingController(
+      text: _userController.user.value.nickname,
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('修改昵称'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLength: 12,
+          decoration: InputDecoration(
+            hintText: '请输入昵称',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('取消')),
+          TextButton(
+            onPressed: () async {
+              final name = ctrl.text.trim();
+              Navigator.pop(ctx);
+              if (name.isEmpty) {
+                ToastUtils.showToast(context, '昵称不能为空', showWith: 240);
+                return;
+              }
+              await _userController.updateNickname(name);
+              if (mounted) ToastUtils.showToast(context, '昵称已更新');
+            },
+            child: Text('保存'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -143,44 +253,47 @@ class _MinePageState extends State<MinePage> {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Image.network(
-              item.picture,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey.shade100,
-                child: Icon(Icons.image_not_supported, color: Colors.grey),
+      child: InkWell(
+        onTap: () => Navigator.pushNamed(context, '/product', arguments: item),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Image.network(
+                item.picture,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.grey.shade100,
+                  child: Icon(Icons.image_not_supported, color: Colors.grey),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: _textMain),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '¥${item.price}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.deepOrange,
-                    fontWeight: FontWeight.bold,
+            Padding(
+              padding: EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: _textMain),
                   ),
-                ),
-              ],
+                  SizedBox(height: 4),
+                  Text(
+                    '¥${item.price}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.deepOrange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -220,8 +333,11 @@ class _MinePageState extends State<MinePage> {
                 ),
                 TextButton(
                   onPressed: () {
+                    // 通知后端注销 token（失败不阻塞）
+                    logoutApi();
                     tokenManager.removeToken();
                     _userController.updataUserInfo(UserInfo.fromJSON({}));
+                    _memberController.clear();
                     Navigator.pop(context);
                     Navigator.pushNamed(context, '/login');
                   },
@@ -262,25 +378,133 @@ class _MinePageState extends State<MinePage> {
           ),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: _primary.withOpacity(.18),
-                backgroundImage: _userController.user.value.id.isNotEmpty
-                    ? NetworkImage(_userController.user.value.avatar)
-                    : null,
-                child: _userController.user.value.id.isNotEmpty
-                    ? null
-                    : Icon(Icons.person, size: 36, color: _primary),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      if (_userController.user.value.id.isNotEmpty) {
+                        _showAvatarSheet();
+                      }
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: _primary.withOpacity(.18),
+                          backgroundImage: _avatarProvider(
+                            _userController.user.value,
+                          ),
+                          child: _userController.user.value.id.isNotEmpty
+                              ? null
+                              : Icon(Icons.person, size: 36, color: _primary),
+                        ),
+                        // 已登录时显示头像编辑小角标
+                        if (_userController.user.value.id.isNotEmpty)
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 3,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.camera_alt,
+                                size: 12,
+                                color: _primary,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (_userController.user.value.id.isNotEmpty &&
+                      _memberController.isMember)
+                    Positioned(
+                      left: -4,
+                      top: -4,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pushNamed(context, '/member'),
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFFD700), Color(0xFFE5A100)],
+                            ),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 3,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'V',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               SizedBox(width: 14),
-              Text(
-                _userController.user.value.id.isNotEmpty
-                    ? _userController.user.value.account
-                    : '立即登录',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: _textMain,
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    if (_userController.user.value.id.isNotEmpty) {
+                      _showNicknameDialog();
+                    }
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _userController.user.value.id.isNotEmpty
+                            ? (_userController.user.value.nickname.isNotEmpty
+                                  ? _userController.user.value.nickname
+                                  : _userController.user.value.account)
+                            : '立即登录',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: _textMain,
+                        ),
+                      ),
+                      if (_userController.user.value.id.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Text(
+                            '点击修改昵称',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF999999),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               Spacer(),
@@ -320,15 +544,18 @@ class _MinePageState extends State<MinePage> {
             ),
           ),
           SizedBox(width: 8),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: _accent,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '立即开通',
-              style: TextStyle(fontSize: 12, color: Colors.white),
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/member'),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: _accent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '立即开通',
+                style: TextStyle(fontSize: 12, color: Colors.white),
+              ),
             ),
           ),
         ],
@@ -339,8 +566,16 @@ class _MinePageState extends State<MinePage> {
   /// 快捷入口（3 列）
   Widget _buildQuickActions() {
     final items = [
-      _Entry(Icons.star_rounded, '我的收藏'),
-      _Entry(Icons.history_rounded, '我的足迹'),
+      _Entry(
+        Icons.star_rounded,
+        '我的收藏',
+        onTap: () => Navigator.pushNamed(context, '/favorite'),
+      ),
+      _Entry(
+        Icons.history_rounded,
+        '我的足迹',
+        onTap: () => Navigator.pushNamed(context, '/footprint'),
+      ),
       _Entry(Icons.support_agent_rounded, '我的客服'),
     ];
     return Container(
@@ -353,11 +588,31 @@ class _MinePageState extends State<MinePage> {
   /// 我的订单（5 列）
   Widget _buildOrderSection() {
     final orders = [
-      _Entry(Icons.receipt_long_outlined, '全部订单'),
-      _Entry(Icons.payment_outlined, '待付款'),
-      _Entry(Icons.inventory_2_outlined, '待发货'),
-      _Entry(Icons.local_shipping_outlined, '待收货'),
-      _Entry(Icons.rate_review_outlined, '待评价'),
+      _Entry(
+        Icons.receipt_long_outlined,
+        '全部订单',
+        onTap: () => Navigator.pushNamed(context, '/orders', arguments: ''),
+      ),
+      _Entry(
+        Icons.payment_outlined,
+        '待付款',
+        onTap: () => Navigator.pushNamed(context, '/orders', arguments: '待付款'),
+      ),
+      _Entry(
+        Icons.inventory_2_outlined,
+        '待发货',
+        onTap: () => Navigator.pushNamed(context, '/orders', arguments: '待发货'),
+      ),
+      _Entry(
+        Icons.local_shipping_outlined,
+        '待收货',
+        onTap: () => Navigator.pushNamed(context, '/orders', arguments: '待收货'),
+      ),
+      _Entry(
+        Icons.rate_review_outlined,
+        '待评价',
+        onTap: () => Navigator.pushNamed(context, '/orders', arguments: '待评价'),
+      ),
     ];
     return Container(
       margin: EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -394,12 +649,15 @@ class _MinePageState extends State<MinePage> {
   /// 单个图标入口
   Widget _buildEntryItem(_Entry e) {
     return Expanded(
-      child: Column(
-        children: [
-          Icon(e.icon, size: 28, color: _primary),
-          SizedBox(height: 6),
-          Text(e.label, style: TextStyle(fontSize: 12, color: _textSub)),
-        ],
+      child: InkWell(
+        onTap: e.onTap,
+        child: Column(
+          children: [
+            Icon(e.icon, size: 28, color: _primary),
+            SizedBox(height: 6),
+            Text(e.label, style: TextStyle(fontSize: 12, color: _textSub)),
+          ],
+        ),
       ),
     );
   }
@@ -408,5 +666,6 @@ class _MinePageState extends State<MinePage> {
 class _Entry {
   final IconData icon;
   final String label;
-  _Entry(this.icon, this.label);
+  final VoidCallback? onTap;
+  _Entry(this.icon, this.label, {this.onTap});
 }
